@@ -275,3 +275,24 @@ def get_user_count():
     count = cur.fetchone()[0]
     conn.close()
     return count
+
+
+def get_rank(score):
+    if score >= 3000:
+        return "شاه سیاه!"
+    elif score >= 2000:
+        return "شاه!"
+    elif score >= 1500:
+        return "وزیر!"
+    elif score >= 1200:
+        return "رخ دیوانه!"
+    elif score >= 900:
+        return "رخ!"
+    elif score >= 600:
+        return "راهب!"
+    elif score >= 400:
+        return "شوالیه!"
+    elif score >= 250:
+        return "سرباز!"
+    else:
+        return "پرنسس!"

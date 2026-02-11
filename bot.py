@@ -10,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
-from db import get_done_tasks_today, get_user_count
+from db import get_done_tasks_today, get_user_count, get_rank
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 
@@ -150,6 +150,7 @@ async def profile_handler(message: Message):
     full_name = user[2]
     join_date_str = user[4]
     score = user[3]
+    rank = get_rank(score)
 
     join_date = datetime.strptime(join_date_str, "%Y-%m-%d %H:%M:%S")
     days_passed = (datetime.now() - join_date).days
@@ -157,7 +158,8 @@ async def profile_handler(message: Message):
     await message.answer(
         f"👤 اسم شما: {full_name}\n"
         f"📅 تاریخ عضویت: {join_date} ({days_passed} روز پیش)\n"
-        f"⭐ امتیاز: {score}"
+        f"⭐ امتیاز: {score}\n"
+        f"🔰 لقب شما: {rank}"
     )
 
 
