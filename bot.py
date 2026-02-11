@@ -56,6 +56,9 @@ async def register_name_handler(message: Message, state: FSMContext):
 
 
 async def task_handler(message: Message):
+    user = get_user_by_telegram_id(message.from_user.id)
+    if not user:
+        return
     lines = message.text.strip().splitlines()
 
     if len(lines) != 3:
@@ -220,13 +223,13 @@ async def main():
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
     dp.message.register(register_handler, Command("register"))
+    dp.message.register(register_name_handler, RegisterState.waiting_for_name)
     dp.message.register(tasks_handler, Command("tasks"))
     dp.message.register(profile_handler, Command("profile"))
     dp.message.register(send_handler, Command("send"))
     dp.message.register(today_handler, Command("today"))
 
     dp.message.register(task_handler)
-    dp.message.register(register_name_handler, RegisterState.waiting_for_name)
     dp.callback_query.register(task_callback_handler)
 
     await dp.start_polling(bot)
