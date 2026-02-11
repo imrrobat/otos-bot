@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user
 from db import add_task, get_user_tasks
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime
 
 
 init_db()
@@ -133,6 +134,28 @@ async def tasks_handler(message: Message):
         )
 
 
+async def profile_handler(message: Message):
+    telegram_id = message.from_user.id
+
+    user = get_user_by_telegram_id(telegram_id)
+    if not user:
+        await message.answer("ابتدا /start بزن و ثبت نام کن 😅")
+        return
+
+    full_name = user[2]
+    join_date_str = user[4]
+    score = user[3]
+
+    join_date = datetime.strptime(join_date_str, "%Y-%m-%d %H:%M:%S")
+    days_passed = (datetime.now() - join_date).days
+
+    await message.answer(
+        f"👤 اسم شما: {full_name}\n"
+        f"📅 تاریخ عضویت: {days_passed} روز پیش\n"
+        f"⭐ امتیاز: {score}"
+    )
+
+
 async def main():
     bot = Bot(API_KEY)
     dp = Dispatcher()
@@ -141,6 +164,7 @@ async def main():
     dp.message.register(help_handler, Command("help"))
     dp.message.register(register_handler, Command("register"))
     dp.message.register(tasks_handler, Command("tasks"))
+    dp.message.register(profile_handler, Command("profile"))
     dp.message.register(register_name_handler, RegisterState.waiting_for_name)
     dp.message.register(task_handler)
 
