@@ -173,13 +173,20 @@ async def task_callback_handler(callback: CallbackQuery):
 
         if success:
             await callback.answer(
-                "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد", show_alert=True
+                "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد",
+                show_alert=True
             )
+            await callback.message.delete()  # پاک کردن پیام تسک
         else:
             await callback.answer("خطا در حذف تسک", show_alert=True)
+
     elif action == "done":
         success, msg = mark_task_done(task_id)
+
         await callback.answer(msg, show_alert=True)
+
+        if success:
+            await callback.message.delete()  # پاک کردن پیام تسک
 
 
 async def send_handler(message: Message):
