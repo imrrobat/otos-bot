@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta
 
 DB_NAME = "otos.db"
 
@@ -110,10 +111,6 @@ def add_task(user_telegram_id, title, category, priority):
 
 
 def get_user_tasks(telegram_id, only_pending=True):
-    """
-    لیست تسک های کاربر بر اساس telegram_id
-    only_pending = True => فقط تسک های انجام نشده
-    """
     conn = get_connection()
     cur = conn.cursor()
 
@@ -154,3 +151,54 @@ def get_user_tasks(telegram_id, only_pending=True):
         )
 
     return tasks
+
+
+def delete_task(task_id):
+    """حذف کامل یک تسک"""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
+
+
+def mark_task_done(task_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT created_at, user_id, priority FROM tasks WHERE id = ?", (task_id,)
+    )
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return False, "تسک پیدا نشد"
+
+    created_at_str, user_id, priority = row
+    created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+    now = datetime.now()
+    elapsed = now - created_at
+
+    if elapsed < timedelta(minutes=30):
+        remaining = timedelta(minutes=30) - elapsed
+        minutes_left = int(remaining.total_seconds() // 60)
+        conn.close()
+        return (
+            False,
+            f"⚠️ هنوز نیم ساعت از ایجاد کار نگذشته. {minutes_left} دقیقه دیگر صبر کنید.",
+        )
+
+    cur.execute(
+        """
+        UPDATE tasks
+        SET is_done = 1, done_date = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """,
+        (task_id,),
+    )
+
+    cur.execute("UPDATE users SET score = score + ? WHERE id = ?", (priority, user_id))
+
+    conn.commit()
+    conn.close()
+    return True, f"✅ تسک با موفقیت انجام شد و {priority} امتیاز به شما اضافه شد"

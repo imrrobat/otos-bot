@@ -1,7 +1,7 @@
 import asyncio
 import os
 from aiogram import Bot, Dispatcher
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from dotenv import load_dotenv
 from db import init_db
@@ -9,7 +9,7 @@ from menu import START_MENU, HELP_MENU
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user
-from db import add_task, get_user_tasks
+from db import add_task, get_user_tasks, delete_task, mark_task_done
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 
@@ -151,9 +151,22 @@ async def profile_handler(message: Message):
 
     await message.answer(
         f"👤 اسم شما: {full_name}\n"
-        f"📅 تاریخ عضویت: {days_passed} روز پیش\n"
+        f"📅 تاریخ عضویت: {join_date} ({days_passed} روز پیش)\n"
         f"⭐ امتیاز: {score}"
     )
+
+
+async def task_callback_handler(callback: CallbackQuery):
+    data = callback.data
+    action, task_id_str = data.split(":")
+    task_id = int(task_id_str)
+
+    if action == "delete":
+        delete_task(task_id)
+        await callback.answer("🗑️ تسک حذف شد", show_alert=True)
+    elif action == "done":
+        success, msg = mark_task_done(task_id)
+        await callback.answer(msg, show_alert=True)
 
 
 async def main():
@@ -165,8 +178,9 @@ async def main():
     dp.message.register(register_handler, Command("register"))
     dp.message.register(tasks_handler, Command("tasks"))
     dp.message.register(profile_handler, Command("profile"))
-    dp.message.register(register_name_handler, RegisterState.waiting_for_name)
     dp.message.register(task_handler)
+    dp.message.register(register_name_handler, RegisterState.waiting_for_name)
+    dp.callback_query.register(task_callback_handler)
 
     await dp.start_polling(bot)
 
