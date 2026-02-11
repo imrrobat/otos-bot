@@ -14,8 +14,8 @@ async def help_handler(pm: Message):
     await pm.answer("به زودی در این مکان، هلپ نصب میشود")
 
 
-async def add_handler(pm: Message, com: CommandObject):
-    task = com.args
+async def add_handler(pm: Message, command: CommandObject):
+    task = command.args
 
     if not task:
         await pm.answer("اسم یه تسک رو وارد کن")
@@ -30,7 +30,7 @@ async def main():
 
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
-    dp.message.register(add_handler, Command("add"))
+    dp.message.register(add_handler, Command(commands=["add"]))
 
     await dp.start_polling(bot)
 
