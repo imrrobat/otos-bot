@@ -241,3 +241,13 @@ def get_done_tasks_today(telegram_id):
     total_priority = sum([row[1] for row in rows])
 
     return tasks, total_priority
+
+
+def get_user_count():
+    """تعداد کل کاربران ثبت‌نام شده"""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM users")
+    count = cur.fetchone()[0]
+    conn.close()
+    return count

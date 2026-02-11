@@ -10,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
-from db import get_done_tasks_today
+from db import get_done_tasks_today, get_user_count
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 
@@ -216,6 +216,17 @@ async def today_handler(message: Message):
     )
 
 
+async def log_handler(message: Message):
+    telegram_id = message.from_user.id
+
+    if telegram_id != ADMIN:
+        await message.answer("❌ فقط ادمین می‌تواند این فرمان را استفاده کند")
+        return
+
+    count = get_user_count()
+    await message.answer(f"تعداد کاربران ثبت‌نام شده: {count}")
+
+
 async def main():
     bot = Bot(API_KEY)
     dp = Dispatcher()
@@ -228,6 +239,7 @@ async def main():
     dp.message.register(profile_handler, Command("profile"))
     dp.message.register(send_handler, Command("send"))
     dp.message.register(today_handler, Command("today"))
+    dp.message.register(log_handler, Command("log"))
 
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
