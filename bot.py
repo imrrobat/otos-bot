@@ -28,7 +28,7 @@ async def main():
     bot = Bot(API_KEY)
     dp = Dispatcher()
 
-    dp.message.register(start_handler, CommandStart)
+    dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
     dp.message.register(add_handler, Command("add"))
 
