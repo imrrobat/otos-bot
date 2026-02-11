@@ -1,8 +1,13 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
-from aiogram.filters import Command, CommandStart, CommandObject
-from config import API_KEY
+from aiogram.filters import Command, CommandStart
+
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
 
 
 async def start_handler(pm: Message):
@@ -15,7 +20,6 @@ async def help_handler(pm: Message):
 
 
 async def task_handler(message: Message):
-    # جدا کردن خطوط
     lines = message.text.strip().splitlines()
 
     if len(lines) != 3:
@@ -28,7 +32,6 @@ async def task_handler(message: Message):
     category_line = lines[1].strip()
     priority_num = lines[2].strip()
 
-    # بررسی هشتگ
     hashtags = [word for word in category_line.split() if word.startswith("#")]
 
     if len(hashtags) != 1:
@@ -37,9 +40,8 @@ async def task_handler(message: Message):
         )
         return
 
-    category = hashtags[0][1:]  # حذف # از اول
+    category = hashtags[0][1:]
 
-    # تبدیل اولویت عددی به متن
     priority_map = {"1": "معمولی", "2": "مهم", "3": "فوری"}
 
     priority_text = priority_map.get(priority_num)
@@ -47,7 +49,6 @@ async def task_handler(message: Message):
         await message.answer("عدد اولویت باید 1، 2 یا 3 باشد")
         return
 
-    # پاسخ به کاربر
     await message.answer(
         f"کار شما با دسته‌بندی {category} و اولویت {priority_text} دریافت شد ✅"
     )
