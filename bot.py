@@ -1,6 +1,6 @@
 import asyncio
 import os
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from dotenv import load_dotenv
@@ -11,7 +11,8 @@ from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from datetime import datetime
 
 
@@ -25,8 +26,21 @@ class RegisterState(StatesGroup):
     waiting_for_name = State()
 
 
+def main_menu_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="گزارش امروز")],
+            [KeyboardButton(text="پروفایل شما")],
+            [KeyboardButton(text="کارهای انجام نشده")],
+            [KeyboardButton(text="راهنمایی")],
+        ],
+        resize_keyboard=True,
+    )
+    return keyboard
+
+
 async def start_handler(pm: Message):
-    await pm.answer(START_MENU)
+    await pm.answer(START_MENU, reply_markup=main_menu_keyboard())
 
 
 async def help_handler(pm: Message):
@@ -173,8 +187,7 @@ async def task_callback_handler(callback: CallbackQuery):
 
         if success:
             await callback.answer(
-                "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد",
-                show_alert=True
+                "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد", show_alert=True
             )
             await callback.message.delete()  # پاک کردن پیام تسک
         else:
@@ -255,6 +268,11 @@ async def main():
     dp.message.register(send_handler, Command("send"))
     dp.message.register(today_handler, Command("today"))
     dp.message.register(log_handler, Command("log"))
+
+    dp.message.register(today_handler, F.text == "گزارش امروز")
+    dp.message.register(profile_handler, F.text == "پروفایل شما")
+    dp.message.register(tasks_handler, F.text == "کارهای انجام نشده")
+    dp.message.register(help_handler, F.text == "راهنمایی")
 
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
