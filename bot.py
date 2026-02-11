@@ -18,7 +18,7 @@ from datetime import datetime
 init_db()
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
-ADMIN = os.getenv("ADMIN")
+ADMIN = int(os.getenv("ADMIN"))
 
 
 class RegisterState(StatesGroup):
