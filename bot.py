@@ -8,8 +8,9 @@ from db import init_db
 from menu import START_MENU, HELP_MENU
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from db import get_user_by_telegram_id, add_user
+from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
+from db import get_done_tasks_today
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 
@@ -17,6 +18,7 @@ from datetime import datetime
 init_db()
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
+ADMIN = os.getenv("ADMIN")
 
 
 class RegisterState(StatesGroup):
@@ -169,6 +171,48 @@ async def task_callback_handler(callback: CallbackQuery):
         await callback.answer(msg, show_alert=True)
 
 
+async def send_handler(message: Message):
+    if message.from_user.id != ADMIN:
+        await message.answer("❌ فقط ادمین می‌تواند این پیام را ارسال کند")
+        return
+
+    text = message.text[len("/send") :].strip()
+    if not text:
+        await message.answer("❌ لطفا متن پیام را بعد از /send وارد کنید")
+        return
+
+    users = get_all_users()
+    count = 0
+    for user_id in users:
+        try:
+            await message.bot.send_message(chat_id=user_id, text=text)
+            count += 1
+        except:
+            pass
+
+    await message.answer(f"✅ پیام به {count} کاربر ارسال شد")
+
+
+async def today_handler(message: Message):
+    telegram_id = message.from_user.id
+
+    tasks, total_priority = get_done_tasks_today(telegram_id)
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    if not tasks:
+        await message.answer(
+            f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅"
+        )
+        return
+
+    tasks_text = "\n".join([f"✅ {title}" for title in tasks])
+
+    await message.answer(
+        f"گزارش امروز: {today_str}\n{tasks_text}\n\nتعداد لبخندهای امروز: {total_priority}"
+    )
+
+
 async def main():
     bot = Bot(API_KEY)
     dp = Dispatcher()
@@ -178,6 +222,9 @@ async def main():
     dp.message.register(register_handler, Command("register"))
     dp.message.register(tasks_handler, Command("tasks"))
     dp.message.register(profile_handler, Command("profile"))
+    dp.message.register(send_handler, Command("send"))
+    dp.message.register(today_handler, Command("today"))
+
     dp.message.register(task_handler)
     dp.message.register(register_name_handler, RegisterState.waiting_for_name)
     dp.callback_query.register(task_callback_handler)

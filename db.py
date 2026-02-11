@@ -202,3 +202,42 @@ def mark_task_done(task_id):
     conn.commit()
     conn.close()
     return True, f"✅ تسک با موفقیت انجام شد و {priority} امتیاز به شما اضافه شد"
+
+
+def get_all_users():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT telegram_id FROM users")
+    rows = cur.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
+
+
+def get_done_tasks_today(telegram_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+    user = cur.fetchone()
+    if not user:
+        conn.close()
+        return [], 0
+
+    user_id = user[0]
+
+    cur.execute(
+        """
+        SELECT title, priority
+        FROM tasks
+        WHERE user_id = ? AND is_done = 1 AND DATE(done_date) = DATE('now')
+    """,
+        (user_id,),
+    )
+
+    rows = cur.fetchall()
+    conn.close()
+
+    tasks = [row[0] for row in rows]
+    total_priority = sum([row[1] for row in rows])
+
+    return tasks, total_priority
