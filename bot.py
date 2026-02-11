@@ -32,7 +32,7 @@ async def main():
     dp.message.register(help_handler, Command("help"))
     dp.message.register(add_handler, Command("add"))
 
-    dp.start_polling(bot)
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
