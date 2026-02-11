@@ -167,8 +167,14 @@ async def task_callback_handler(callback: CallbackQuery):
     task_id = int(task_id_str)
 
     if action == "delete":
-        delete_task(task_id)
-        await callback.answer("🗑️ تسک حذف شد", show_alert=True)
+        success = delete_task(task_id, callback.from_user.id)
+
+        if success:
+            await callback.answer(
+                "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد", show_alert=True
+            )
+        else:
+            await callback.answer("خطا در حذف تسک", show_alert=True)
     elif action == "done":
         success, msg = mark_task_done(task_id)
         await callback.answer(msg, show_alert=True)

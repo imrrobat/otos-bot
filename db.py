@@ -153,13 +153,37 @@ def get_user_tasks(telegram_id, only_pending=True):
     return tasks
 
 
-def delete_task(task_id):
-    """حذف کامل یک تسک"""
+def delete_task(task_id, telegram_id):
     conn = get_connection()
     cur = conn.cursor()
+
+    cur.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+    user = cur.fetchone()
+    if not user:
+        conn.close()
+        return False
+
+    user_id = user[0]
+
+    cur.execute("SELECT id FROM tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
+    task = cur.fetchone()
+    if not task:
+        conn.close()
+        return False
+
     cur.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    cur.execute(
+        """
+        UPDATE users
+        SET score = score - 2
+        WHERE id = ?
+    """,
+        (user_id,),
+    )
+
     conn.commit()
     conn.close()
+    return True
 
 
 def mark_task_done(task_id):
