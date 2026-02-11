@@ -140,6 +140,7 @@ async def main():
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
     dp.message.register(register_handler, Command("register"))
+    dp.message.register(tasks_handler, Command("tasks"))
     dp.message.register(register_name_handler, RegisterState.waiting_for_name)
     dp.message.register(task_handler)
 
