@@ -59,6 +59,7 @@ async def main():
 
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
+    dp.message.register(task_handler)
 
     await dp.start_polling(bot)
 
