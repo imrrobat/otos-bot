@@ -1,7 +1,13 @@
 import sqlite3
 from datetime import datetime, timedelta, date
+from datetime import datetime
+from pytz import timezone
 
 DB_NAME = "otos.db"
+
+
+tehran_tz = timezone("Asia/Tehran")
+today_str = datetime.now(tehran_tz).date().isoformat()
 
 
 def get_connection():
@@ -268,7 +274,6 @@ def get_done_tasks_today(telegram_id):
 
 
 def get_user_count():
-    """تعداد کل کاربران ثبت‌نام شده"""
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) FROM users")
@@ -290,7 +295,7 @@ def get_user_done_tasks_today(user_telegram_id):
     conn = get_connection()
     cur = conn.cursor()
 
-    today_str = date.today().isoformat()
+    # today_str = date.today().isoformat()
 
     cur.execute(
         """

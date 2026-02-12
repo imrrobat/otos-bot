@@ -15,7 +15,7 @@ from db import get_user_done_tasks_today
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+from pytz import timezone
 
 init_db()
 load_dotenv()
@@ -24,6 +24,9 @@ API_KEY = os.getenv("API_KEY")
 ADMIN = int(os.getenv("ADMIN"))
 bot = Bot(API_KEY)
 dp = Dispatcher()
+tehran_tz = timezone("Asia/Tehran")
+now_tehran = datetime.now(tehran_tz)
+# today_str = now_tehran.date().isoformat()
 scheduler = AsyncIOScheduler()
 
 
@@ -32,7 +35,8 @@ class RegisterState(StatesGroup):
 
 
 async def daily_job(bot):
-    today_str = date.today().isoformat()
+    # today_str = date.today().isoformat()
+    today_str = now_tehran.date().isoformat()
 
     users = get_all_users()
 
@@ -309,7 +313,7 @@ async def main():
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
 
-    scheduler.add_job(daily_job, "cron", hour=0, minute=13, kwargs={"bot": bot})
+    scheduler.add_job(daily_job, "cron", hour=0, minute=25, kwargs={"bot": bot})
     scheduler.start()
 
     await dp.start_polling(bot)
