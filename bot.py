@@ -10,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
-from db import get_done_tasks_today, get_user_count, get_rank
+from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from datetime import datetime
@@ -44,7 +44,7 @@ async def start_handler(pm: Message):
 
 
 async def help_handler(pm: Message):
-    await pm.answer(HELP_MENU)
+    await pm.answer(HELP_MENU, reply_markup=main_menu_keyboard())
 
 
 async def register_handler(message: Message, state: FSMContext):
@@ -65,7 +65,7 @@ async def register_name_handler(message: Message, state: FSMContext):
 
     add_user(telegram_id, name)
 
-    await message.answer("اکانت شما ساخته شد ✅")
+    await message.answer("اکانت شما ساخته شد ✅", reply_markup=main_menu_keyboard())
     await state.clear()
 
 
@@ -106,7 +106,8 @@ async def task_handler(message: Message):
         return
 
     await message.answer(
-        f"کار شما با دسته‌بندی {category} و اولویت {priority_text} ثبت شد ✅"
+        f"کار شما با دسته‌بندی {category} و اولویت {priority_text} ثبت شد ✅",
+        reply_markup=main_menu_keyboard(),
     )
 
 
@@ -233,14 +234,16 @@ async def today_handler(message: Message):
 
     if not tasks:
         await message.answer(
-            f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅"
+            f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅",
+            reply_markup=main_menu_keyboard(),
         )
         return
 
     tasks_text = "\n".join([f"✅ {title}" for title in tasks])
 
     await message.answer(
-        f"گزارش امروز: {today_str}\n{tasks_text}\n\nتعداد لبخندهای امروز: {total_priority}"
+        f"گزارش امروز: {today_str}\n{tasks_text}\n\nتعداد لبخندهای امروز: {total_priority}",
+        reply_markup=main_menu_keyboard(),
     )
 
 
@@ -251,8 +254,17 @@ async def log_handler(message: Message):
         await message.answer("❌ فقط ادمین می‌تواند این فرمان را استفاده کند")
         return
 
-    count = get_user_count()
-    await message.answer(f"تعداد کاربران ثبت‌نام شده: {count}")
+    user_count = get_user_count()
+    done_count = get_total_done_tasks()
+
+    await message.answer(
+        f"""
+            📊 آمار بات
+
+            👤 تعداد کاربران: {user_count}
+            ✅ کل کارهای انجام شده: {done_count}
+            """
+    )
 
 
 async def main():
