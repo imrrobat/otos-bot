@@ -277,6 +277,15 @@ def get_user_count():
     return count
 
 
+def get_total_done_tasks():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM tasks WHERE is_done = 1")
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
+
 def get_rank(score):
     if score >= 3000:
         return "شاه سیاه!"
