@@ -264,16 +264,16 @@ async def today_handler(message: Message):
         return
 
     tasks_text = "\n".join([f"✅ {title}" for title in tasks])
-    message_text = (
-        f"🗒 گزارش امروز: {today_str}\n\n"
-        + "\n".join(tasks_text)
-        + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
-    )
-    await message.answer(message_text, reply_markup=main_menu_keyboard())
-    # await message.answer(
-    #     f"گزارش امروز: {today_str}\n{tasks_text}\n\nتعداد لبخندهای امروز: {total_smiles}",
-    #     reply_markup=main_menu_keyboard(),
+    # message_text = (
+    #     f"🗒 گزارش امروز: {today_str}\n\n"
+    #     + "\n".join(tasks_text)
+    #     + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
     # )
+    # await message.answer(message_text, reply_markup=main_menu_keyboard())
+    await message.answer(
+        f"🗒گزارش امروز: {today_str}\n{tasks_text}\n\n🙂تعداد لبخندهای امروز: {total_smiles}",
+        reply_markup=main_menu_keyboard(),
+    )
 
 
 async def log_handler(message: Message):
