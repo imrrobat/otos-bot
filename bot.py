@@ -15,7 +15,6 @@ from db import get_user_done_tasks_today
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from aiogram.exceptions import BotBlocked
 
 
 init_db()
@@ -55,8 +54,6 @@ async def daily_job():
         # ارسال پیام با مدیریت بلاک شدن
         try:
             await bot.send_message(chat_id=telegram_id, text=message_text)
-        except BotBlocked:
-            print(f"کاربر {telegram_id} بات را بلاک کرده است، پیام ارسال نشد")
         except Exception as e:
             print(f"Error in Sending pm{telegram_id}: {e}")
 
