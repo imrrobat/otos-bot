@@ -19,6 +19,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 init_db()
 load_dotenv()
+
 API_KEY = os.getenv("API_KEY")
 ADMIN = int(os.getenv("ADMIN"))
 bot = Bot(API_KEY)
@@ -30,13 +31,12 @@ class RegisterState(StatesGroup):
     waiting_for_name = State()
 
 
-async def daily_job():
+async def daily_job(bot):
     today_str = date.today().isoformat()
 
     users = get_all_users()
 
-    for user in users:
-        telegram_id = user["telegram_id"]
+    for telegram_id in users:
         tasks = get_user_done_tasks_today(telegram_id)
 
         if not tasks:
@@ -51,11 +51,10 @@ async def daily_job():
             + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
         )
 
-        # ارسال پیام با مدیریت بلاک شدن
         try:
             await bot.send_message(chat_id=telegram_id, text=message_text)
         except Exception as e:
-            print(f"Error in Sending pm{telegram_id}: {e}")
+            print(f"Error in sending message to {telegram_id}: {e}")
 
 
 async def start_handler(pm: Message):
@@ -264,14 +263,9 @@ async def today_handler(message: Message):
         return
 
     tasks_text = "\n".join([f"✅ {title}" for title in tasks])
-    # message_text = (
-    #     f"🗒 گزارش امروز: {today_str}\n\n"
-    #     + "\n".join(tasks_text)
-    #     + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
-    # )
-    # await message.answer(message_text, reply_markup=main_menu_keyboard())
+
     await message.answer(
-        f"🗒گزارش امروز: {today_str}\n{tasks_text}\n\n🙂تعداد لبخندهای امروز: {total_smiles}",
+        f"🗒گزارش امروز: {today_str}\n\n{tasks_text}\n\n🙂تعداد لبخندهای امروز: {total_smiles}",
         reply_markup=main_menu_keyboard(),
     )
 
@@ -315,7 +309,7 @@ async def main():
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
 
-    scheduler.add_job(daily_job, "cron", hour=23, minute=59)
+    scheduler.add_job(daily_job, "cron", hour=00, minute=12)
     scheduler.start()
 
     await dp.start_polling(bot)
