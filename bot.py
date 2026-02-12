@@ -15,7 +15,8 @@ from db import get_user_done_tasks_today
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pytz import timezone
+
+# from pytz import timezone
 
 init_db()
 load_dotenv()
@@ -24,41 +25,42 @@ API_KEY = os.getenv("API_KEY")
 ADMIN = int(os.getenv("ADMIN"))
 bot = Bot(API_KEY)
 dp = Dispatcher()
-tehran_tz = timezone("Asia/Tehran")
-now_tehran = datetime.now(tehran_tz)
+
+# tehran_tz = timezone("Asia/Tehran")
+# now_tehran = datetime.now(tehran_tz)
 # today_str = now_tehran.date().isoformat()
-scheduler = AsyncIOScheduler()
+# scheduler = AsyncIOScheduler()
 
 
 class RegisterState(StatesGroup):
     waiting_for_name = State()
 
 
-async def daily_job(bot):
-    # today_str = date.today().isoformat()
-    today_str = now_tehran.date().isoformat()
+# async def daily_job(bot):
+#     # today_str = date.today().isoformat()
+#     today_str = now_tehran.date().isoformat()
 
-    users = get_all_users()
+#     users = get_all_users()
 
-    for telegram_id in users:
-        tasks = get_user_done_tasks_today(telegram_id)
+#     for telegram_id in users:
+#         tasks = get_user_done_tasks_today(telegram_id)
 
-        if not tasks:
-            continue
+#         if not tasks:
+#             continue
 
-        task_lines = [f"✅ {task['title']}" for task in tasks]
-        total_smiles = sum(task["priority"] for task in tasks)
+#         task_lines = [f"✅ {task['title']}" for task in tasks]
+#         total_smiles = sum(task["priority"] for task in tasks)
 
-        message_text = (
-            f"🗒 گزارش امروز: {today_str}\n\n"
-            + "\n".join(task_lines)
-            + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
-        )
+#         message_text = (
+#             f"🗒 گزارش امروز: {today_str}\n\n"
+#             + "\n".join(task_lines)
+#             + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
+#         )
 
-        try:
-            await bot.send_message(chat_id=telegram_id, text=message_text)
-        except Exception as e:
-            print(f"Error in sending message to {telegram_id}: {e}")
+#         try:
+#             await bot.send_message(chat_id=telegram_id, text=message_text)
+#         except Exception as e:
+#             print(f"Error in sending message to {telegram_id}: {e}")
 
 
 async def start_handler(pm: Message):
@@ -313,8 +315,8 @@ async def main():
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
 
-    scheduler.add_job(daily_job, "cron", hour=0, minute=25, kwargs={"bot": bot})
-    scheduler.start()
+    # scheduler.add_job(daily_job, "cron", hour=0, minute=25, kwargs={"bot": bot})
+    # scheduler.start()
 
     await dp.start_polling(bot)
 
