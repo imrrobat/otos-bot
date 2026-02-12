@@ -7,7 +7,10 @@ DB_NAME = "otos.db"
 
 
 tehran_tz = timezone("Asia/Tehran")
+now_tehran = datetime.now(tehran_tz)
 today_str = datetime.now(tehran_tz).date().isoformat()
+start_of_day = now_tehran.replace(hour=0, minute=0, second=0, microsecond=0)
+end_of_day = now_tehran.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 
 def get_connection():
@@ -255,13 +258,23 @@ def get_done_tasks_today(telegram_id):
 
     user_id = user[0]
 
+    # cur.execute(
+    #     """
+    #     SELECT title, priority
+    #     FROM tasks
+    #     WHERE user_id = ? AND is_done = 1 AND DATE(done_date) = DATE('now')
+    # """,
+    #     (user_id,),
+    # )
+
     cur.execute(
         """
         SELECT title, priority
         FROM tasks
-        WHERE user_id = ? AND is_done = 1 AND DATE(done_date) = DATE('now')
-    """,
-        (user_id,),
+        WHERE user_id = ? AND is_done = 1
+          AND done_date BETWEEN ? AND ?
+        """,
+        (user_id, start_of_day.isoformat(), end_of_day.isoformat()),
     )
 
     rows = cur.fetchall()
