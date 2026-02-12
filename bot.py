@@ -309,7 +309,7 @@ async def main():
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
 
-    scheduler.add_job(daily_job, "cron", hour=00, minute=12)
+    scheduler.add_job(daily_job, "cron", hour=0, minute=13, kwargs={"bot": bot})
     scheduler.start()
 
     await dp.start_polling(bot)
