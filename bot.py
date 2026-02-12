@@ -5,38 +5,60 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from dotenv import load_dotenv
 from db import init_db
-from menu import START_MENU, HELP_MENU
+from utils import START_MENU, HELP_MENU, main_menu_keyboard
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
+from db import get_user_done_tasks_today
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from datetime import datetime
+from datetime import datetime, date
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiogram.exceptions import BotBlocked
 
 
 init_db()
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 ADMIN = int(os.getenv("ADMIN"))
+bot = Bot(API_KEY)
+dp = Dispatcher()
+scheduler = AsyncIOScheduler()
 
 
 class RegisterState(StatesGroup):
     waiting_for_name = State()
 
 
-def main_menu_keyboard():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="گزارش امروز")],
-            [KeyboardButton(text="پروفایل شما")],
-            [KeyboardButton(text="کارهای انجام نشده")],
-            [KeyboardButton(text="راهنمایی")],
-        ],
-        resize_keyboard=True,
-    )
-    return keyboard
+async def daily_job():
+    today_str = date.today().isoformat()
+
+    users = get_all_users()
+
+    for user in users:
+        telegram_id = user["telegram_id"]
+        tasks = get_user_done_tasks_today(telegram_id)
+
+        if not tasks:
+            continue
+
+        task_lines = [f"✅ {task['title']}" for task in tasks]
+        total_smiles = sum(task["priority"] for task in tasks)
+
+        message_text = (
+            f"🗒 گزارش امروز: {today_str}\n\n"
+            + "\n".join(task_lines)
+            + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
+        )
+
+        # ارسال پیام با مدیریت بلاک شدن
+        try:
+            await bot.send_message(chat_id=telegram_id, text=message_text)
+        except BotBlocked:
+            print(f"کاربر {telegram_id} بات را بلاک کرده است، پیام ارسال نشد")
+        except Exception as e:
+            print(f"Error in Sending pm{telegram_id}: {e}")
 
 
 async def start_handler(pm: Message):
@@ -233,7 +255,7 @@ async def send_handler(message: Message):
 async def today_handler(message: Message):
     telegram_id = message.from_user.id
 
-    tasks, total_priority = get_done_tasks_today(telegram_id)
+    tasks, total_smiles = get_done_tasks_today(telegram_id)
 
     today_str = datetime.now().strftime("%Y-%m-%d")
 
@@ -245,11 +267,16 @@ async def today_handler(message: Message):
         return
 
     tasks_text = "\n".join([f"✅ {title}" for title in tasks])
-
-    await message.answer(
-        f"گزارش امروز: {today_str}\n{tasks_text}\n\nتعداد لبخندهای امروز: {total_priority}",
-        reply_markup=main_menu_keyboard(),
+    message_text = (
+        f"🗒 گزارش امروز: {today_str}\n\n"
+        + "\n".join(tasks_text)
+        + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
     )
+    await message.answer(message_text, reply_markup=main_menu_keyboard())
+    # await message.answer(
+    #     f"گزارش امروز: {today_str}\n{tasks_text}\n\nتعداد لبخندهای امروز: {total_smiles}",
+    #     reply_markup=main_menu_keyboard(),
+    # )
 
 
 async def log_handler(message: Message):
@@ -273,9 +300,6 @@ async def log_handler(message: Message):
 
 
 async def main():
-    bot = Bot(API_KEY)
-    dp = Dispatcher()
-
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
     dp.message.register(register_handler, Command("register"))
@@ -293,6 +317,9 @@ async def main():
 
     dp.message.register(task_handler)
     dp.callback_query.register(task_callback_handler)
+
+    scheduler.add_job(daily_job, "cron", hour=23, minute=59)
+    scheduler.start()
 
     await dp.start_polling(bot)
 

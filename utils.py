@@ -1,3 +1,19 @@
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+
+
+def main_menu_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="گزارش امروز")],
+            [KeyboardButton(text="پروفایل شما")],
+            [KeyboardButton(text="کارهای انجام نشده")],
+            [KeyboardButton(text="راهنمایی")],
+        ],
+        resize_keyboard=True,
+    )
+    return keyboard
+
+
 START_MENU = """
 سلام کاربرگرامی به OTOS خوش آمدین 🌱 
 تو دو لیست شخصی شما  یک تسک - یک لبخند 🗒🙂

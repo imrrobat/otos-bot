@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 DB_NAME = "otos.db"
 
@@ -284,6 +284,29 @@ def get_total_done_tasks():
     count = cur.fetchone()[0]
     conn.close()
     return count
+
+
+def get_user_done_tasks_today(user_telegram_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    today_str = date.today().isoformat()
+
+    cur.execute(
+        """
+        SELECT title, priority
+        FROM tasks t
+        JOIN users u ON t.user_id = u.id
+        WHERE u.telegram_id = ? AND t.is_done = 1 AND DATE(t.done_date) = ?
+    """,
+        (user_telegram_id, today_str),
+    )
+
+    rows = cur.fetchall()
+    conn.close()
+
+    tasks = [{"title": row[0], "priority": row[1]} for row in rows]
+    return tasks
 
 
 def get_rank(score):
