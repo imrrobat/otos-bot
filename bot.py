@@ -73,6 +73,10 @@ async def task_handler(message: Message):
     user = get_user_by_telegram_id(message.from_user.id)
     if not user:
         return
+
+    if not message.text:
+        return
+
     lines = message.text.strip().splitlines()
 
     if len(lines) != 3:
@@ -85,6 +89,13 @@ async def task_handler(message: Message):
     category_line = lines[1].strip()
     priority_num = lines[2].strip()
 
+    priority_map = {"1": "معمولی", "2": "مهم", "3": "فوری"}
+    if priority_num not in priority_map:
+        await message.answer("عدد اولویت باید 1، 2 یا 3 باشد")
+        return
+
+    priority_text = priority_map[priority_num]
+
     hashtags = [word for word in category_line.split() if word.startswith("#")]
 
     if len(hashtags) != 1:
@@ -94,15 +105,9 @@ async def task_handler(message: Message):
     category = hashtags[0][1:]
 
     success = add_task(message.from_user.id, title, category, priority_num)
+
     if not success:
         await message.answer("خطا: کاربر پیدا نشد. لطفا ابتدا /start بزنید.")
-        return
-
-    priority_map = {"1": "معمولی", "2": "مهم", "3": "فوری"}
-
-    priority_text = priority_map.get(priority_num)
-    if not priority_text:
-        await message.answer("عدد اولویت باید 1، 2 یا 3 باشد")
         return
 
     await message.answer(
