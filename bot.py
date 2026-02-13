@@ -5,18 +5,16 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from dotenv import load_dotenv
 from db import init_db
-from utils import START_MENU, HELP_MENU, main_menu_keyboard
+from utils import START_MENU, HELP_MENU, GET_NAME_TEXT, main_menu_keyboard
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
-from db import get_user_done_tasks_today
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# from pytz import timezone
 
 init_db()
 load_dotenv()
@@ -25,11 +23,6 @@ API_KEY = os.getenv("API_KEY")
 ADMIN = int(os.getenv("ADMIN"))
 bot = Bot(API_KEY)
 dp = Dispatcher()
-
-# tehran_tz = timezone("Asia/Tehran")
-# now_tehran = datetime.now(tehran_tz)
-# today_str = now_tehran.date().isoformat()
-# scheduler = AsyncIOScheduler()
 
 
 class RegisterState(StatesGroup):
@@ -68,7 +61,11 @@ async def start_handler(pm: Message):
 
 
 async def help_handler(pm: Message):
-    await pm.answer(HELP_MENU, reply_markup=main_menu_keyboard())
+    await pm.answer(
+        HELP_MENU,
+        reply_markup=main_menu_keyboard(),
+        disable_web_page_preview=True,
+    )
 
 
 async def register_handler(message: Message, state: FSMContext):
@@ -79,7 +76,7 @@ async def register_handler(message: Message, state: FSMContext):
     if user:
         await message.answer("شما قبلا ثبت نام کردی!")
     else:
-        await message.answer("تو رو با چی صدا کنم؟")
+        await message.answer(GET_NAME_TEXT)
         await state.set_state(RegisterState.waiting_for_name)
 
 
@@ -101,32 +98,46 @@ async def task_handler(message: Message):
     if not message.text:
         return
 
-    lines = message.text.strip().splitlines()
+    lines = [l.strip() for l in message.text.strip().splitlines() if l.strip()]
 
-    if len(lines) != 3:
+    # ❗ فقط دو حالت مجاز: 2 خط یا 3 خط
+    if len(lines) not in (2, 3):
         await message.answer(
-            "لطفا پیام رو درست بفرستید:\nتیتر\n#دسته‌بندی\nعدد اولویت (1 تا 3)"
+            "فرمت درست:\n\n"
+            "تیتر\n#دسته‌بندی (اختیاری)\nعدد اولویت (1 تا 3)\n\n"
+            "یا بدون دسته‌بندی:\nتیتر\nعدد اولویت"
         )
         return
 
-    title = lines[0].strip()
-    category_line = lines[1].strip()
-    priority_num = lines[2].strip()
+    title = lines[0]
 
+    # 🔹 اگر 2 خط بود → دسته‌بندی نامشخص
+    if len(lines) == 2:
+        category = "نامشخص"
+        priority_num = lines[1]
+
+    # 🔹 اگر 3 خط بود → بررسی هشتگ
+    else:
+        category_line = lines[1]
+        priority_num = lines[2]
+
+        hashtags = [word for word in category_line.split() if word.startswith("#")]
+
+        if len(hashtags) != 1:
+            await message.answer(
+                "اگر دسته‌بندی می‌نویسی باید دقیقا یک هشتگ باشد\nمثال:\n#کدنویسی"
+            )
+            return
+
+        category = hashtags[0][1:]
+
+    # ✅ اعتبارسنجی اولویت
     priority_map = {"1": "معمولی", "2": "مهم", "3": "فوری"}
     if priority_num not in priority_map:
         await message.answer("عدد اولویت باید 1، 2 یا 3 باشد")
         return
 
     priority_text = priority_map[priority_num]
-
-    hashtags = [word for word in category_line.split() if word.startswith("#")]
-
-    if len(hashtags) != 1:
-        await message.answer("پیام شما باید دقیقا یک هشتگ داشته باشد. مثال:\n#کدنویسی")
-        return
-
-    category = hashtags[0][1:]
 
     success = add_task(message.from_user.id, title, category, priority_num)
 
