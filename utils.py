@@ -1,4 +1,18 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+
+def tasks_keyboard(tasks):
+    kb = InlineKeyboardMarkup(row_width=3)
+
+    for task in tasks:
+        kb.row(
+            InlineKeyboardButton(text=task.title, callback_data=f"task_open_{task.id}"),
+            InlineKeyboardButton(text="✅", callback_data=f"task_done_{task.id}"),
+            InlineKeyboardButton(text="❌", callback_data=f"task_delete_{task.id}"),
+        )
+
+    return kb
 
 
 def main_menu_keyboard():

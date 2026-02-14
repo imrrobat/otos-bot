@@ -5,7 +5,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from dotenv import load_dotenv
 from db import init_db
-from utils import START_MENU, HELP_MENU, GET_NAME_TEXT, main_menu_keyboard
+from utils import START_MENU, HELP_MENU, GET_NAME_TEXT
+from utils import main_menu_keyboard, tasks_keyboard
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
@@ -151,6 +152,49 @@ async def task_handler(message: Message):
     )
 
 
+# async def tasks_handler(message: Message):
+#     telegram_id = message.from_user.id
+
+#     user = get_user_by_telegram_id(telegram_id)
+#     if not user:
+#         await message.answer("ابتدا /start بزن و ثبت نام کن 😅")
+#         return
+
+#     tasks = get_user_tasks(telegram_id, only_pending=True)
+#     if not tasks:
+#         await message.answer("هیچ تسک انجام‌نشده‌ای پیدا نشد ✅")
+#         return
+
+#     for task in tasks:
+#         task_id, title, category, priority = (
+#             task["id"],
+#             task["title"],
+#             task["category"],
+#             task["priority"],
+#         )
+
+#         keyboard = InlineKeyboardMarkup(
+#             inline_keyboard=[
+#                 [
+#                     InlineKeyboardButton(
+#                         text="✅ انجام دادن", callback_data=f"done:{task_id}"
+#                     ),
+#                     InlineKeyboardButton(
+#                         text="🗑️ حذف", callback_data=f"delete:{task_id}"
+#                     ),
+#                 ]
+#             ]
+#         )
+
+#         priority_map = {"1": "معمولی", "2": "مهم", "3": "فوری"}
+#         priority_text = priority_map.get(str(priority), "نامشخص")
+
+#         await message.answer(
+#             f"📝 {title}\n#دسته‌بندی: {category}\n⚡ اولویت: {priority_text}",
+#             reply_markup=keyboard,
+#         )
+
+
 async def tasks_handler(message: Message):
     telegram_id = message.from_user.id
 
@@ -164,34 +208,9 @@ async def tasks_handler(message: Message):
         await message.answer("هیچ تسک انجام‌نشده‌ای پیدا نشد ✅")
         return
 
-    for task in tasks:
-        task_id, title, category, priority = (
-            task["id"],
-            task["title"],
-            task["category"],
-            task["priority"],
-        )
+    text = "کارهای انجام نشده 👇"
 
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="✅ انجام دادن", callback_data=f"done:{task_id}"
-                    ),
-                    InlineKeyboardButton(
-                        text="🗑️ حذف", callback_data=f"delete:{task_id}"
-                    ),
-                ]
-            ]
-        )
-
-        priority_map = {"1": "معمولی", "2": "مهم", "3": "فوری"}
-        priority_text = priority_map.get(str(priority), "نامشخص")
-
-        await message.answer(
-            f"📝 {title}\n#دسته‌بندی: {category}\n⚡ اولویت: {priority_text}",
-            reply_markup=keyboard,
-        )
+    await message.answer(text, reply_markup=tasks_keyboard(tasks))
 
 
 async def profile_handler(message: Message):
@@ -218,29 +237,73 @@ async def profile_handler(message: Message):
     )
 
 
+# async def task_callback_handler(callback: CallbackQuery):
+#     data = callback.data
+#     action, task_id_str = data.split(":")
+#     task_id = int(task_id_str)
+
+#     if action == "delete":
+#         success = delete_task(task_id, callback.from_user.id)
+
+#         if success:
+#             await callback.answer(
+#                 "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد", show_alert=True
+#             )
+#             await callback.message.delete()  # پاک کردن پیام تسک
+#         else:
+#             await callback.answer("خطا در حذف تسک", show_alert=True)
+
+#     elif action == "done":
+#         success, msg = mark_task_done(task_id)
+
+#         await callback.answer(msg, show_alert=True)
+
+#         if success:
+#             await callback.message.delete()  # پاک کردن پیام تسک
+
+
 async def task_callback_handler(callback: CallbackQuery):
     data = callback.data
-    action, task_id_str = data.split(":")
+
+    # چون تو utils این فرمت رو داریم:
+    # task_done_12
+    # task_delete_12
+    # task_open_12
+
+    _, action, task_id_str = data.split("_")
     task_id = int(task_id_str)
 
+    telegram_id = callback.from_user.id
+
     if action == "delete":
-        success = delete_task(task_id, callback.from_user.id)
+        success = delete_task(task_id, telegram_id)
 
         if success:
             await callback.answer(
                 "🗑️ تسک حذف شد\n2 امتیاز از شما کم شد", show_alert=True
             )
-            await callback.message.delete()  # پاک کردن پیام تسک
         else:
             await callback.answer("خطا در حذف تسک", show_alert=True)
+            return
 
     elif action == "done":
         success, msg = mark_task_done(task_id)
-
         await callback.answer(msg, show_alert=True)
 
-        if success:
-            await callback.message.delete()  # پاک کردن پیام تسک
+        if not success:
+            return
+
+    # ✅ گرفتن لیست جدید بعد از تغییر
+    tasks = get_user_tasks(telegram_id, only_pending=True)
+
+    if not tasks:
+        await callback.message.edit_text("هیچ تسک انجام‌نشده‌ای باقی نمانده 🎉")
+        return
+
+    # ✅ ریفرش پیام
+    await callback.message.edit_text(
+        "کارهای انجام نشده 👇", reply_markup=tasks_keyboard(tasks)
+    )
 
 
 async def send_handler(message: Message):
