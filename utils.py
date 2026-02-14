@@ -6,11 +6,12 @@ def tasks_keyboard(tasks):
     builder = InlineKeyboardBuilder()
 
     for task in tasks:
-        builder.button(text=task["title"], callback_data=f"task_open_{task['id']}")
-        builder.button(text="✅", callback_data=f"task_done_{task['id']}")
+        # اول دکمه های کوچک
         builder.button(text="❌", callback_data=f"task_delete_{task['id']}")
+        builder.button(text="✅", callback_data=f"task_done_{task['id']}")
+        # آخر تیتر → سمت راست نمایش داده میشه
+        builder.button(text=task["title"], callback_data=f"task_open_{task['id']}")
 
-    # هر ردیف ۳ دکمه
     builder.adjust(3)
 
     return builder.as_markup()
