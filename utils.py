@@ -1,5 +1,4 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
@@ -7,11 +6,12 @@ def tasks_keyboard(tasks):
     builder = InlineKeyboardBuilder()
 
     for task in tasks:
-        builder.row(
-            builder.button(text=task["title"], callback_data=f"task_open_{task['id']}"),
-            builder.button(text="✅", callback_data=f"task_done_{task['id']}"),
-            builder.button(text="❌", callback_data=f"task_delete_{task['id']}"),
-        )
+        builder.button(text=task["title"], callback_data=f"task_open_{task['id']}")
+        builder.button(text="✅", callback_data=f"task_done_{task['id']}")
+        builder.button(text="❌", callback_data=f"task_delete_{task['id']}")
+
+    # هر ردیف ۳ دکمه
+    builder.adjust(3)
 
     return builder.as_markup()
 
