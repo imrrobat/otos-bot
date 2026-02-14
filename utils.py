@@ -3,18 +3,40 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
+# def tasks_keyboard(tasks):
+#     builder = InlineKeyboardBuilder()
+
+#     for task in tasks:
+#         builder.row(
+#             InlineKeyboardButton(
+#                 text=task["title"], callback_data=f"task_open_{task['id']}"
+#             )
+#         )
+#         builder.row(
+#             InlineKeyboardButton(text="✅", callback_data=f"task_done_{task['id']}"),
+#             InlineKeyboardButton(text="❌", callback_data=f"task_delete_{task['id']}"),
+#         )
+
+#     return builder.as_markup()
+
+
 def tasks_keyboard(tasks):
     builder = InlineKeyboardBuilder()
 
     for task in tasks:
+        title = f"┌─ {task['title']} ─┐"
+
+        builder.row(
+            InlineKeyboardButton(text=title, callback_data=f"task_open_{task['id']}")
+        )
+
         builder.row(
             InlineKeyboardButton(
-                text=task["title"], callback_data=f"task_open_{task['id']}"
-            )
-        )
-        builder.row(
-            InlineKeyboardButton(text="✅", callback_data=f"task_done_{task['id']}"),
-            InlineKeyboardButton(text="❌", callback_data=f"task_delete_{task['id']}"),
+                text="└ ✅ انجام", callback_data=f"task_done_{task['id']}"
+            ),
+            InlineKeyboardButton(
+                text="❌ حذف ┘", callback_data=f"task_delete_{task['id']}"
+            ),
         )
 
     return builder.as_markup()
