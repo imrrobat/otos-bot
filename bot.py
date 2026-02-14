@@ -12,6 +12,7 @@ from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
+from db import get_task_by_id
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -292,6 +293,13 @@ async def task_callback_handler(callback: CallbackQuery):
 
         if not success:
             return
+
+    elif action == "open":
+        task = get_task_by_id(task_id)  # یه تابع ساده که title رو برگردونه
+        if task:
+            await callback.answer(task["title"])  # toast
+        else:
+            await callback.answer("تسک پیدا نشد", show_alert=True)
 
     # ✅ گرفتن لیست جدید بعد از تغییر
     tasks = get_user_tasks(telegram_id, only_pending=True)

@@ -307,6 +307,20 @@ def get_user_done_tasks_today(user_telegram_id):
     return tasks
 
 
+def get_task_by_id(task_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT title FROM tasks WHERE id = ?", (task_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    return {"title": row[0]}
+
+
 def get_rank(score):
     if score >= 3000:
         return "شاه سیاه!"
