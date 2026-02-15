@@ -12,10 +12,12 @@ from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
-from db import get_task_by_id
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from db import get_task_by_id, get_user_done_tasks_today
+
+# from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 init_db()
@@ -378,6 +380,41 @@ async def log_handler(message: Message):
     )
 
 
+async def send_log_handler(message: Message):
+    if message.from_user.id != ADMIN:
+        await message.answer("⛔ شما دسترسی ندارید")
+        return
+
+    today_str = date.today().isoformat()
+    users = get_all_users()
+
+    sent_count = 0
+
+    for telegram_id in users:
+        tasks = get_user_done_tasks_today(telegram_id)
+
+        if not tasks:
+            continue
+
+        task_lines = [f"✅ {task['title']}" for task in tasks]
+        total_smiles = sum(task["priority"] for task in tasks)
+
+        text = (
+            f"خسته نباشید 🌱\n\n"
+            f"🗒 گزارش امروز: {today_str}\n\n"
+            + "\n".join(task_lines)
+            + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
+        )
+
+        try:
+            await bot.send_message(chat_id=telegram_id, text=text)
+            sent_count += 1
+        except Exception as e:
+            print(f"Error sending to {telegram_id}: {e}")
+
+    await message.answer(f"✅ log for {sent_count} user sent")
+
+
 async def main():
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
@@ -388,6 +425,7 @@ async def main():
     dp.message.register(send_handler, Command("send"))
     dp.message.register(today_handler, Command("today"))
     dp.message.register(log_handler, Command("log"))
+    dp.message.register(send_log_handler, Command("send_log"))
 
     dp.message.register(today_handler, F.text == "گزارش امروز")
     dp.message.register(profile_handler, F.text == "پروفایل شما")
