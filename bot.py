@@ -1,5 +1,6 @@
 import asyncio
 import os
+
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
@@ -13,6 +14,7 @@ from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
 from db import get_task_by_id, get_user_done_tasks_today
+from db import get_last_message_id, set_last_message_id
 
 # from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, date
@@ -23,8 +25,8 @@ from datetime import datetime, date
 init_db()
 load_dotenv()
 
-API_KEY = os.getenv("API_KEY")
 ADMIN = int(os.getenv("ADMIN"))
+API_KEY = os.getenv("API_KEY")
 bot = Bot(API_KEY)
 dp = Dispatcher()
 
@@ -216,6 +218,30 @@ async def tasks_handler(message: Message):
     await message.answer(text, reply_markup=tasks_keyboard(tasks))
 
 
+# async def profile_handler(message: Message):
+#     telegram_id = message.from_user.id
+
+#     user = get_user_by_telegram_id(telegram_id)
+#     if not user:
+#         await message.answer("ابتدا /start بزن و ثبت نام کن 😅")
+#         return
+
+#     full_name = user[2]
+#     join_date_str = user[4]
+#     score = user[3]
+#     rank = get_rank(score)
+
+#     join_date = datetime.strptime(join_date_str, "%Y-%m-%d %H:%M:%S")
+#     days_passed = (datetime.now() - join_date).days
+
+#     await message.answer(
+#         f"👤 اسم شما: {full_name}\n"
+#         f"📅 تاریخ عضویت: {join_date} ({days_passed} روز پیش)\n"
+#         f"⭐ امتیاز: {score}\n"
+#         f"🔰 لقب شما: {rank}"
+#     )
+
+
 async def profile_handler(message: Message):
     telegram_id = message.from_user.id
 
@@ -232,12 +258,28 @@ async def profile_handler(message: Message):
     join_date = datetime.strptime(join_date_str, "%Y-%m-%d %H:%M:%S")
     days_passed = (datetime.now() - join_date).days
 
-    await message.answer(
+    text = (
         f"👤 اسم شما: {full_name}\n"
         f"📅 تاریخ عضویت: {join_date} ({days_passed} روز پیش)\n"
         f"⭐ امتیاز: {score}\n"
         f"🔰 لقب شما: {rank}"
     )
+
+    # 🔹 حذف پیام قبلی اگر وجود داشت
+    last_msg_id = get_last_message_id(telegram_id, "profile")
+    if last_msg_id:
+        try:
+            await message.bot.delete_message(
+                chat_id=telegram_id, message_id=last_msg_id
+            )
+        except:
+            pass  # اگر پاک نشد مشکلی نیست
+
+    # 🔹 ارسال پیام جدید
+    sent_msg = await message.answer(text)
+
+    # 🔹 ذخیره message_id جدید
+    set_last_message_id(telegram_id, "profile", sent_msg.message_id)
 
 
 # async def task_callback_handler(callback: CallbackQuery):

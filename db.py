@@ -8,10 +8,31 @@ def get_connection():
     return sqlite3.connect(DB_NAME)
 
 
+# def create_users_table():
+#     conn = get_connection()
+#     cur = conn.cursor()
+
+#     cur.execute(
+#         """
+#         CREATE TABLE IF NOT EXISTS users (
+#             id INTEGER PRIMARY KEY AUTOINCREMENT,
+#             telegram_id INTEGER UNIQUE,
+#             full_name TEXT,
+#             score INTEGER DEFAULT 0,
+#             join_date TEXT DEFAULT CURRENT_TIMESTAMP
+#         )
+#     """
+#     )
+
+#     conn.commit()
+#     conn.close()
+
+
 def create_users_table():
     conn = get_connection()
     cur = conn.cursor()
 
+    # جدول کاربران
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -21,7 +42,27 @@ def create_users_table():
             score INTEGER DEFAULT 0,
             join_date TEXT DEFAULT CURRENT_TIMESTAMP
         )
-    """
+        """
+    )
+
+    # جدول ذخیره message state ها
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS message_states (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER NOT NULL,
+            key TEXT NOT NULL,
+            message_id INTEGER NOT NULL
+        )
+        """
+    )
+
+    # ایندکس یونیک برای اینکه هر کاربر برای هر key فقط یک رکورد داشته باشه
+    cur.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_message_state_user_key
+        ON message_states (telegram_id, key)
+        """
     )
 
     conn.commit()
@@ -340,3 +381,29 @@ def get_rank(score):
         return "سرباز!"
     else:
         return "پرنسس!"
+
+
+def get_last_message_id(telegram_id, key):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT message_id FROM message_states WHERE telegram_id = ? AND key = ?",
+            (telegram_id, key),
+        )
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
+def set_last_message_id(telegram_id, key, message_id):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO message_states (telegram_id, key, message_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT(telegram_id, key)
+            DO UPDATE SET message_id = excluded.message_id
+            """,
+            (telegram_id, key, message_id),
+        )
+        conn.commit()
