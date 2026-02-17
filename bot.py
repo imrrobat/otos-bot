@@ -200,6 +200,24 @@ async def task_handler(message: Message):
 #         )
 
 
+# async def tasks_handler(message: Message):
+#     telegram_id = message.from_user.id
+
+#     user = get_user_by_telegram_id(telegram_id)
+#     if not user:
+#         await message.answer("ابتدا /start بزن و ثبت نام کن 😅")
+#         return
+
+#     tasks = get_user_tasks(telegram_id, only_pending=True)
+#     if not tasks:
+#         await message.answer("هیچ تسک انجام‌نشده‌ای پیدا نشد ✅")
+#         return
+
+#     text = "کارهای انجام نشده 👇"
+
+#     await message.answer(text, reply_markup=tasks_keyboard(tasks))
+
+
 async def tasks_handler(message: Message):
     telegram_id = message.from_user.id
 
@@ -209,13 +227,30 @@ async def tasks_handler(message: Message):
         return
 
     tasks = get_user_tasks(telegram_id, only_pending=True)
+
     if not tasks:
-        await message.answer("هیچ تسک انجام‌نشده‌ای پیدا نشد ✅")
-        return
+        text = "هیچ تسک انجام‌نشده‌ای پیدا نشد ✅"
+    else:
+        text = "کارهای انجام نشده 👇"
 
-    text = "کارهای انجام نشده 👇"
+    # 🔹 حذف پیام قبلی تسک‌ها
+    last_msg_id = get_last_message_id(telegram_id, "tasks")
+    if last_msg_id:
+        try:
+            await message.bot.delete_message(
+                chat_id=telegram_id, message_id=last_msg_id
+            )
+        except:
+            pass  # اگر قبلا پاک شده بود ارور نده
 
-    await message.answer(text, reply_markup=tasks_keyboard(tasks))
+    # 🔹 ارسال پیام جدید
+    if tasks:
+        sent_msg = await message.answer(text, reply_markup=tasks_keyboard(tasks))
+    else:
+        sent_msg = await message.answer(text)
+
+    # 🔹 ذخیره message_id
+    set_last_message_id(telegram_id, "tasks", sent_msg.message_id)
 
 
 # async def profile_handler(message: Message):
@@ -380,26 +415,59 @@ async def send_handler(message: Message):
     await message.answer(f"✅ پیام به {count} کاربر ارسال شد")
 
 
+# async def today_handler(message: Message):
+#     telegram_id = message.from_user.id
+
+#     tasks, total_smiles = get_done_tasks_today(telegram_id)
+
+#     today_str = datetime.now().strftime("%Y-%m-%d")
+
+#     if not tasks:
+#         await message.answer(
+#             f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅",
+#             reply_markup=main_menu_keyboard(),
+#         )
+#         return
+
+#     tasks_text = "\n".join([f"✅ {title}" for title in tasks])
+
+#     await message.answer(
+#         f"🗒گزارش امروز: {today_str}\n\n{tasks_text}\n\n🙂تعداد لبخندهای امروز: {total_smiles}",
+#         reply_markup=main_menu_keyboard(),
+#     )
+
+
 async def today_handler(message: Message):
     telegram_id = message.from_user.id
 
     tasks, total_smiles = get_done_tasks_today(telegram_id)
-
     today_str = datetime.now().strftime("%Y-%m-%d")
 
     if not tasks:
-        await message.answer(
-            f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅",
-            reply_markup=main_menu_keyboard(),
+        text = f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅"
+    else:
+        tasks_text = "\n".join([f"✅ {title}" for title in tasks])
+        text = (
+            f"🗒گزارش امروز: {today_str}\n\n"
+            f"{tasks_text}\n\n"
+            f"🙂تعداد لبخندهای امروز: {total_smiles}"
         )
-        return
 
-    tasks_text = "\n".join([f"✅ {title}" for title in tasks])
+    # 🔹 حذف پیام قبلی گزارش امروز
+    last_msg_id = get_last_message_id(telegram_id, "today")
+    if last_msg_id:
+        try:
+            await message.bot.delete_message(
+                chat_id=telegram_id, message_id=last_msg_id
+            )
+        except:
+            pass
 
-    await message.answer(
-        f"🗒گزارش امروز: {today_str}\n\n{tasks_text}\n\n🙂تعداد لبخندهای امروز: {total_smiles}",
-        reply_markup=main_menu_keyboard(),
-    )
+    # 🔹 ارسال پیام جدید
+    sent_msg = await message.answer(text, reply_markup=main_menu_keyboard())
+
+    # 🔹 ذخیره message_id
+    set_last_message_id(telegram_id, "today", sent_msg.message_id)
 
 
 async def log_handler(message: Message):
