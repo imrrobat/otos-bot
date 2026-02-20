@@ -434,7 +434,7 @@ async def main():
     dp.message.register(today_handler, F.text == "گزارش امروز")
     dp.message.register(profile_handler, F.text == "پروفایل شما")
     dp.message.register(tasks_handler, F.text == "کارهای انجام نشده")
-    dp.message.register(send_log_handler, F.text == "گزارش ماه")
+    dp.message.register(month_stats_handler, F.text == "گزارش ماه")
     dp.message.register(help_handler, F.text == "راهنمایی")
 
     dp.message.register(task_handler)
