@@ -8,31 +8,10 @@ def get_connection():
     return sqlite3.connect(DB_NAME)
 
 
-# def create_users_table():
-#     conn = get_connection()
-#     cur = conn.cursor()
-
-#     cur.execute(
-#         """
-#         CREATE TABLE IF NOT EXISTS users (
-#             id INTEGER PRIMARY KEY AUTOINCREMENT,
-#             telegram_id INTEGER UNIQUE,
-#             full_name TEXT,
-#             score INTEGER DEFAULT 0,
-#             join_date TEXT DEFAULT CURRENT_TIMESTAMP
-#         )
-#     """
-#     )
-
-#     conn.commit()
-#     conn.close()
-
-
 def create_users_table():
     conn = get_connection()
     cur = conn.cursor()
 
-    # جدول کاربران
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -45,7 +24,6 @@ def create_users_table():
         """
     )
 
-    # جدول ذخیره message state ها
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS message_states (
@@ -57,7 +35,6 @@ def create_users_table():
         """
     )
 
-    # ایندکس یونیک برای اینکه هر کاربر برای هر key فقط یک رکورد داشته باشه
     cur.execute(
         """
         CREATE UNIQUE INDEX IF NOT EXISTS idx_message_state_user_key
@@ -407,3 +384,27 @@ def set_last_message_id(telegram_id, key, message_id):
             (telegram_id, key, message_id),
         )
         conn.commit()
+
+
+def get_daily_smiles_in_month(telegram_id, year, month):
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT DATE(t.done_date) as day, SUM(t.priority)
+            FROM tasks t
+            JOIN users u ON t.user_id = u.id
+            WHERE u.telegram_id = ?
+              AND t.is_done = 1
+              AND strftime('%Y', t.done_date) = ?
+              AND strftime('%m', t.done_date) = ?
+            GROUP BY day
+            """,
+            (telegram_id, str(year), f"{month:02d}"),
+        )
+
+        rows = cur.fetchall()
+
+        # تبدیل به دیکشنری
+        return {row[0]: row[1] for row in rows}
