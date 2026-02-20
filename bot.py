@@ -202,7 +202,6 @@ async def profile_handler(message: Message):
         f"🔰 لقب شما: {rank}"
     )
 
-    # 🔹 حذف پیام قبلی اگر وجود داشت
     last_msg_id = get_last_message_id(telegram_id, "profile")
     if last_msg_id:
         try:
@@ -349,7 +348,19 @@ async def month_stats_handler(message: Message):
         + f"\n\n✨ جمع لبخندهای ماه: {total_month_smiles}"
     )
 
-    await message.answer(text)
+    last_msg_id = get_last_message_id(telegram_id, "month_stats")
+    if last_msg_id:
+        try:
+            await message.bot.delete_message(
+                chat_id=telegram_id,
+                message_id=last_msg_id,
+            )
+        except:
+            pass
+
+    sent_msg = await message.answer(text)
+
+    set_last_message_id(telegram_id, "month_stats", sent_msg.message_id)
 
 
 async def log_handler(message: Message):
@@ -423,6 +434,7 @@ async def main():
     dp.message.register(today_handler, F.text == "گزارش امروز")
     dp.message.register(profile_handler, F.text == "پروفایل شما")
     dp.message.register(tasks_handler, F.text == "کارهای انجام نشده")
+    dp.message.register(send_log_handler, F.text == "گزارش ماه")
     dp.message.register(help_handler, F.text == "راهنمایی")
 
     dp.message.register(task_handler)

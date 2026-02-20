@@ -20,34 +20,13 @@ def tasks_keyboard(tasks):
     return builder.as_markup()
 
 
-# def tasks_keyboard(tasks):
-#     builder = InlineKeyboardBuilder()
-
-#     for task in tasks:
-#         title = f"┌─ {task['title']} ─┐"
-
-#         builder.row(
-#             InlineKeyboardButton(text=title, callback_data=f"task_open_{task['id']}")
-#         )
-
-#         builder.row(
-#             InlineKeyboardButton(
-#                 text="└ ✅ انجام", callback_data=f"task_done_{task['id']}"
-#             ),
-#             InlineKeyboardButton(
-#                 text="❌ حذف ┘", callback_data=f"task_delete_{task['id']}"
-#             ),
-#         )
-
-#     return builder.as_markup()
-
-
 def main_menu_keyboard():
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="گزارش امروز")],
             [KeyboardButton(text="پروفایل شما")],
             [KeyboardButton(text="کارهای انجام نشده")],
+            [KeyboardButton(text="گزارش ماه")],
             [KeyboardButton(text="راهنمایی")],
         ],
         resize_keyboard=True,
