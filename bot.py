@@ -33,14 +33,14 @@ class RegisterState(StatesGroup):
     waiting_for_name = State()
 
 
-async def start_handler(pm: Message):
-    await pm.answer(START_MENU, reply_markup=main_menu_keyboard(pm.from_user.id))
+async def start_handler(message: Message):
+    await pm.answer(START_MENU, reply_markup=main_menu_keyboard(message.from_user.id))
 
 
-async def help_handler(pm: Message):
+async def help_handler(message: Message):
     await pm.answer(
         HELP_MENU,
-        reply_markup=main_menu_keyboard(pm.from_user.id),
+        reply_markup=main_menu_keyboard(message.from_user.id),
         disable_web_page_preview=True,
     )
 
@@ -64,7 +64,7 @@ async def register_name_handler(message: Message, state: FSMContext):
     add_user(telegram_id, name)
 
     await message.answer(
-        "اکانت شما ساخته شد ✅", reply_markup=main_menu_keyboard(pm.from_user.id)
+        "اکانت شما ساخته شد ✅", reply_markup=main_menu_keyboard(message.from_user.id)
     )
     await state.clear()
 
@@ -122,7 +122,7 @@ async def task_handler(message: Message):
 
     await message.answer(
         f"کار شما با دسته‌بندی {category} و اولویت {priority_text} ثبت شد ✅",
-        reply_markup=main_menu_keyboard(pm.from_user.id),
+        reply_markup=main_menu_keyboard(message.from_user.id),
     )
 
 
@@ -326,7 +326,7 @@ async def today_handler(message: Message):
 
     # 🔹 ارسال پیام جدید
     sent_msg = await message.answer(
-        text, reply_markup=main_menu_keyboard(pm.from_user.id)
+        text, reply_markup=main_menu_keyboard(message.from_user.id)
     )
 
     # 🔹 ذخیره
