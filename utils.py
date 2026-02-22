@@ -20,18 +20,38 @@ def tasks_keyboard(tasks):
     return builder.as_markup()
 
 
-def main_menu_keyboard():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="گزارش امروز")],
-            [KeyboardButton(text="پروفایل شما")],
-            [KeyboardButton(text="کارهای انجام نشده")],
-            [KeyboardButton(text="گزارش ماه")],
-            [KeyboardButton(text="راهنمایی")],
-        ],
+# def main_menu_keyboard():
+#     keyboard = ReplyKeyboardMarkup(
+#         keyboard=[
+#             [KeyboardButton(text="گزارش امروز")],
+#             [KeyboardButton(text="پروفایل شما")],
+#             [KeyboardButton(text="کارهای انجام نشده")],
+#             [KeyboardButton(text="گزارش ماه")],
+#             [KeyboardButton(text="راهنمایی")],
+#         ],
+#         resize_keyboard=True,
+#     )
+#     return keyboard
+
+
+def main_menu_keyboard(telegram_id: int):
+    keyboard_buttons = [
+        [KeyboardButton(text="گزارش امروز")],
+        [KeyboardButton(text="پروفایل شما")],
+        [KeyboardButton(text="کارهای انجام نشده")],
+        [KeyboardButton(text="گزارش ماه")],
+        [KeyboardButton(text="راهنمایی")],
+    ]
+
+    # 🔹 دکمه‌های مخصوص ادمین
+    if telegram_id == ADMIN:
+        keyboard_buttons.append([KeyboardButton(text="ارسال گزارش روز")])
+        keyboard_buttons.append([KeyboardButton(text="آمار کلی کاربران")])
+
+    return ReplyKeyboardMarkup(
+        keyboard=keyboard_buttons,
         resize_keyboard=True,
     )
-    return keyboard
 
 
 START_MENU = """

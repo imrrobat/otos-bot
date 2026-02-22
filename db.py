@@ -408,3 +408,35 @@ def get_daily_smiles_in_month(telegram_id, year, month):
 
         # تبدیل به دیکشنری
         return {row[0]: row[1] for row in rows}
+
+
+def get_done_tasks_grouped_today(telegram_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    today_str = date.today().isoformat()
+
+    cur.execute(
+        """
+        SELECT t.title, t.category, t.priority
+        FROM tasks t
+        JOIN users u ON t.user_id = u.id
+        WHERE u.telegram_id = ?
+          AND t.is_done = 1
+          AND DATE(t.done_date) = ?
+        ORDER BY t.category
+        """,
+        (telegram_id, today_str),
+    )
+
+    rows = cur.fetchall()
+    conn.close()
+
+    grouped = {}
+    total_smiles = 0
+
+    for title, category, priority in rows:
+        grouped.setdefault(category or "بدون دسته", []).append(title)
+        total_smiles += priority or 0
+
+    return grouped, total_smiles

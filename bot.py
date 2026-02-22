@@ -15,6 +15,7 @@ from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
 from db import get_task_by_id, get_user_done_tasks_today, get_daily_smiles_in_month
 from db import get_last_message_id, set_last_message_id
+from db import get_done_tasks_grouped_today
 
 from datetime import datetime, date, timedelta
 
@@ -33,13 +34,13 @@ class RegisterState(StatesGroup):
 
 
 async def start_handler(pm: Message):
-    await pm.answer(START_MENU, reply_markup=main_menu_keyboard())
+    await pm.answer(START_MENU, reply_markup=main_menu_keyboard(pm.from_user.id))
 
 
 async def help_handler(pm: Message):
     await pm.answer(
         HELP_MENU,
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(pm.from_user.id),
         disable_web_page_preview=True,
     )
 
@@ -62,7 +63,9 @@ async def register_name_handler(message: Message, state: FSMContext):
 
     add_user(telegram_id, name)
 
-    await message.answer("اکانت شما ساخته شد ✅", reply_markup=main_menu_keyboard())
+    await message.answer(
+        "اکانت شما ساخته شد ✅", reply_markup=main_menu_keyboard(pm.from_user.id)
+    )
     await state.clear()
 
 
@@ -119,7 +122,7 @@ async def task_handler(message: Message):
 
     await message.answer(
         f"کار شما با دسته‌بندی {category} و اولویت {priority_text} ثبت شد ✅",
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(pm.from_user.id),
     )
 
 
@@ -153,30 +156,6 @@ async def tasks_handler(message: Message):
         sent_msg = await message.answer(text)
 
     set_last_message_id(telegram_id, "tasks", sent_msg.message_id)
-
-
-# async def profile_handler(message: Message):
-#     telegram_id = message.from_user.id
-
-#     user = get_user_by_telegram_id(telegram_id)
-#     if not user:
-#         await message.answer("ابتدا /start بزن و ثبت نام کن 😅")
-#         return
-
-#     full_name = user[2]
-#     join_date_str = user[4]
-#     score = user[3]
-#     rank = get_rank(score)
-
-#     join_date = datetime.strptime(join_date_str, "%Y-%m-%d %H:%M:%S")
-#     days_passed = (datetime.now() - join_date).days
-
-#     await message.answer(
-#         f"👤 اسم شما: {full_name}\n"
-#         f"📅 تاریخ عضویت: {join_date} ({days_passed} روز پیش)\n"
-#         f"⭐ امتیاز: {score}\n"
-#         f"🔰 لقب شما: {rank}"
-#     )
 
 
 async def profile_handler(message: Message):
@@ -282,33 +261,75 @@ async def send_handler(message: Message):
     await message.answer(f"✅ پیام به {count} کاربر ارسال شد")
 
 
+# async def today_handler(message: Message):
+#     telegram_id = message.from_user.id
+
+#     tasks, total_smiles = get_done_tasks_today(telegram_id)
+#     today_str = datetime.now().strftime("%Y-%m-%d")
+
+#     if not tasks:
+#         text = f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅"
+#     else:
+#         tasks_text = "\n".join([f"✅ {title}" for title in tasks])
+#         text = (
+#             f"🗒گزارش امروز: {today_str}\n\n"
+#             f"{tasks_text}\n\n"
+#             f"🙂تعداد لبخندهای امروز: {total_smiles}"
+#         )
+
+#     last_msg_id = get_last_message_id(telegram_id, "today")
+#     if last_msg_id:
+#         try:
+#             await message.bot.delete_message(
+#                 chat_id=telegram_id, message_id=last_msg_id
+#             )
+#         except:
+#             pass
+
+#     sent_msg = await message.answer(text, reply_markup=main_menu_keyboard())
+
+#     set_last_message_id(telegram_id, "today", sent_msg.message_id)
+
+
 async def today_handler(message: Message):
     telegram_id = message.from_user.id
 
-    tasks, total_smiles = get_done_tasks_today(telegram_id)
+    grouped_tasks, total_smiles = get_done_tasks_grouped_today(telegram_id)
     today_str = datetime.now().strftime("%Y-%m-%d")
 
-    if not tasks:
+    if not grouped_tasks:
         text = f"گزارش امروز: {today_str}\nهیچ کار انجام شده‌ای وجود ندارد ✅"
     else:
-        tasks_text = "\n".join([f"✅ {title}" for title in tasks])
+        sections = []
+
+        for category, titles in grouped_tasks.items():
+            section = f"📂 در دسته {category}:\n"
+            section += "\n".join([f"✅ {title}" for title in titles])
+            sections.append(section)
+
         text = (
             f"🗒گزارش امروز: {today_str}\n\n"
-            f"{tasks_text}\n\n"
-            f"🙂تعداد لبخندهای امروز: {total_smiles}"
+            + "\n\n".join(sections)
+            + f"\n\n🙂تعداد لبخندهای امروز: {total_smiles}"
         )
 
+    # 🔹 حذف پیام قبلی
     last_msg_id = get_last_message_id(telegram_id, "today")
     if last_msg_id:
         try:
             await message.bot.delete_message(
-                chat_id=telegram_id, message_id=last_msg_id
+                chat_id=telegram_id,
+                message_id=last_msg_id,
             )
         except:
             pass
 
-    sent_msg = await message.answer(text, reply_markup=main_menu_keyboard())
+    # 🔹 ارسال پیام جدید
+    sent_msg = await message.answer(
+        text, reply_markup=main_menu_keyboard(pm.from_user.id)
+    )
 
+    # 🔹 ذخیره
     set_last_message_id(telegram_id, "today", sent_msg.message_id)
 
 
@@ -383,9 +404,44 @@ async def log_handler(message: Message):
     )
 
 
+# async def send_log_handler(message: Message):
+#     if message.from_user.id != ADMIN:
+#         await message.answer("⛔ شما دسترسی ندارید")
+#         return
+
+#     today_str = date.today().isoformat()
+#     users = get_all_users()
+
+#     sent_count = 0
+
+#     for telegram_id in users:
+#         tasks = get_user_done_tasks_today(telegram_id)
+
+#         if not tasks:
+#             continue
+
+#         task_lines = [f"✅ {task['title']}" for task in tasks]
+#         total_smiles = sum(task["priority"] for task in tasks)
+
+#         text = (
+#             f"خسته نباشید 🌱\n\n"
+#             f"🗒 گزارش امروز: {today_str}\n\n"
+#             + "\n".join(task_lines)
+#             + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
+#         )
+
+#         try:
+#             await bot.send_message(chat_id=telegram_id, text=text)
+#             sent_count += 1
+#         except Exception as e:
+#             print(f"Error sending to {telegram_id}: {e}")
+
+#     await message.answer(f"✅ log for {sent_count} user sent")
+
+
 async def send_log_handler(message: Message):
     if message.from_user.id != ADMIN:
-        await message.answer("⛔ شما دسترسی ندارید")
+        await message.answer("⛔️ شما دسترسی ندارید")
         return
 
     today_str = date.today().isoformat()
@@ -394,18 +450,21 @@ async def send_log_handler(message: Message):
     sent_count = 0
 
     for telegram_id in users:
-        tasks = get_user_done_tasks_today(telegram_id)
+        grouped_tasks, total_smiles = get_done_tasks_grouped_today(telegram_id)
 
-        if not tasks:
+        if not grouped_tasks:
             continue
 
-        task_lines = [f"✅ {task['title']}" for task in tasks]
-        total_smiles = sum(task["priority"] for task in tasks)
+        sections = []
+        for category, titles in grouped_tasks.items():
+            section = f"📂 در دسته {category}:\n"
+            section += "\n".join([f"✅ {title}" for title in titles])
+            sections.append(section)
 
         text = (
             f"خسته نباشید 🌱\n\n"
             f"🗒 گزارش امروز: {today_str}\n\n"
-            + "\n".join(task_lines)
+            + "\n\n".join(sections)
             + f"\n\n🙂 تعداد لبخندهای امروز: {total_smiles}"
         )
 
@@ -415,7 +474,7 @@ async def send_log_handler(message: Message):
         except Exception as e:
             print(f"Error sending to {telegram_id}: {e}")
 
-    await message.answer(f"✅ log for {sent_count} user sent")
+    await message.answer(f"✅ گزارش برای {sent_count} کاربر ارسال شد")
 
 
 async def main():
@@ -435,6 +494,8 @@ async def main():
     dp.message.register(profile_handler, F.text == "پروفایل شما")
     dp.message.register(tasks_handler, F.text == "کارهای انجام نشده")
     dp.message.register(month_stats_handler, F.text == "گزارش ماه")
+    dp.message.register(send_log_handler, F.text == "ارسال گزارش روز")
+    dp.message.register(log_handler, F.text == "آمار کلی کاربران")
     dp.message.register(help_handler, F.text == "راهنمایی")
 
     dp.message.register(task_handler)
