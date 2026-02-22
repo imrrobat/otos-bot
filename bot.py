@@ -34,11 +34,13 @@ class RegisterState(StatesGroup):
 
 
 async def start_handler(message: Message):
-    await pm.answer(START_MENU, reply_markup=main_menu_keyboard(message.from_user.id))
+    await message.answer(
+        START_MENU, reply_markup=main_menu_keyboard(message.from_user.id)
+    )
 
 
 async def help_handler(message: Message):
-    await pm.answer(
+    await message.answer(
         HELP_MENU,
         reply_markup=main_menu_keyboard(message.from_user.id),
         disable_web_page_preview=True,
