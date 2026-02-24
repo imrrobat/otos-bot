@@ -16,7 +16,7 @@ from db import add_task, get_user_tasks, delete_task, mark_task_done
 from db import get_user_count, get_rank, get_total_done_tasks
 from db import get_task_by_id, get_daily_smiles_in_month
 from db import get_last_message_id, set_last_message_id
-from db import get_done_tasks_grouped_today
+from db import get_done_tasks_grouped_today, get_connection
 
 from datetime import datetime, date, timedelta
 
