@@ -305,10 +305,12 @@ def get_user_count():
 def get_total_done_tasks():
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT SUM(done_count) FROM users")
+
+    cur.execute("SELECT SUM(done_tasks_count) FROM users")
     result = cur.fetchone()[0]
+
     conn.close()
-    return result or 0  # اگر هنوز هیچ کار انجام نشده بود
+    return result or 0
 
 
 def get_user_done_tasks_today(user_telegram_id):
