@@ -426,7 +426,7 @@ def get_daily_smiles_in_month(telegram_id, year, month):
         cur.execute(
             """
             SELECT DATE(h.done_date) as day, SUM(h.priority) 
-            FROM tasks_history h
+            FROM task_history h
             JOIN users u ON h.user_id = u.id
             WHERE u.telegram_id = ?
               AND strftime('%Y', h.done_date) = ?
