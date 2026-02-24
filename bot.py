@@ -5,22 +5,23 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from dotenv import load_dotenv
-from db import init_db
+
+# from db import init_db
 from utils import START_MENU, HELP_MENU, GET_NAME_TEXT
 from utils import main_menu_keyboard, tasks_keyboard
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db import get_user_by_telegram_id, add_user, get_all_users
 from db import add_task, get_user_tasks, delete_task, mark_task_done
-from db import get_done_tasks_today, get_user_count, get_rank, get_total_done_tasks
-from db import get_task_by_id, get_user_done_tasks_today, get_daily_smiles_in_month
+from db import get_user_count, get_rank, get_total_done_tasks
+from db import get_task_by_id, get_daily_smiles_in_month
 from db import get_last_message_id, set_last_message_id
 from db import get_done_tasks_grouped_today
 
 from datetime import datetime, date, timedelta
 
 
-init_db()
+# init_db()
 load_dotenv()
 
 ADMIN = int(os.getenv("ADMIN"))
@@ -479,6 +480,64 @@ async def send_log_handler(message: Message):
     await message.answer(f"✅ گزارش برای {sent_count} کاربر ارسال شد")
 
 
+async def check_handler(message: Message):
+    if message.from_user.id != ADMIN:
+        await message.answer("❌ فقط ادمین می‌تواند این فرمان را استفاده کند")
+        return
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # مهلت 10 روز برای تسک‌های انجام نشده
+    deadline_days = 10
+    cutoff_date = datetime.now() - timedelta(days=deadline_days)
+    cutoff_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
+
+    # گرفتن همه تسک‌های انجام نشده که از مهلت گذشته
+    cur.execute(
+        """
+        SELECT t.id, u.telegram_id, u.id as user_id, t.title, t.priority
+        FROM tasks t
+        JOIN users u ON t.user_id = u.id
+        WHERE t.is_done = 0 AND t.created_at <= ?
+        """,
+        (cutoff_str,),
+    )
+    expired_tasks = cur.fetchall()
+
+    for task_id, telegram_id, user_id, title, priority in expired_tasks:
+        # کم کردن 30 امتیاز از کاربر
+        cur.execute("UPDATE users SET score = score - 30 WHERE id = ?", (user_id,))
+
+        # حذف تسک
+        cur.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+
+        # اطلاع‌رسانی به کاربر
+        try:
+            await message.bot.send_message(
+                chat_id=telegram_id,
+                text=f"⚠️ تسک '{title}' به دلیل انجام نشدن حذف شد و 30 امتیاز از شما کم شد.",
+            )
+        except Exception as e:
+            print(f"Error notifying {telegram_id}: {e}")
+
+    # حذف تسک‌های انجام شده که مهلت گذشته
+    cur.execute(
+        """
+        DELETE FROM tasks
+        WHERE is_done = 1 AND created_at <= ?
+        """,
+        (cutoff_str,),
+    )
+
+    conn.commit()
+    conn.close()
+
+    await message.answer(
+        f"✅ بررسی و حذف کارهای منقضی شده انجام شد. تعداد: {len(expired_tasks)}"
+    )
+
+
 async def main():
     dp.message.register(start_handler, CommandStart())
     dp.message.register(help_handler, Command("help"))
@@ -491,6 +550,7 @@ async def main():
     dp.message.register(month_stats_handler, Command("month"))
     dp.message.register(log_handler, Command("log"))
     dp.message.register(send_log_handler, Command("send_log"))
+    dp.message.register(check_handler, Command("check"))
 
     dp.message.register(today_handler, F.text == "گزارش امروز")
     dp.message.register(profile_handler, F.text == "پروفایل شما")
@@ -498,6 +558,7 @@ async def main():
     dp.message.register(month_stats_handler, F.text == "گزارش ماه")
     dp.message.register(send_log_handler, F.text == "ارسال گزارش روز")
     dp.message.register(log_handler, F.text == "آمار کلی کاربران")
+    dp.message.register(check_handler, Command("چک کردن"))
     dp.message.register(help_handler, F.text == "راهنمایی")
 
     dp.message.register(task_handler)

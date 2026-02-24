@@ -293,13 +293,22 @@ def get_user_count():
     return count
 
 
+# def get_total_done_tasks():
+#     conn = get_connection()
+#     cur = conn.cursor()
+#     cur.execute("SELECT COUNT(*) FROM tasks WHERE is_done = 1")
+#     count = cur.fetchone()[0]
+#     conn.close()
+#     return count
+
+
 def get_total_done_tasks():
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM tasks WHERE is_done = 1")
-    count = cur.fetchone()[0]
+    cur.execute("SELECT SUM(done_count) FROM users")
+    result = cur.fetchone()[0]
     conn.close()
-    return count
+    return result or 0  # اگر هنوز هیچ کار انجام نشده بود
 
 
 def get_user_done_tasks_today(user_telegram_id):
@@ -386,19 +395,42 @@ def set_last_message_id(telegram_id, key, message_id):
         conn.commit()
 
 
+# def get_daily_smiles_in_month(telegram_id, year, month):
+#     with get_connection() as conn:
+#         cur = conn.cursor()
+
+#         cur.execute(
+#             """
+#             SELECT DATE(t.done_date) as day, SUM(t.priority)
+#             FROM tasks t
+#             JOIN users u ON t.user_id = u.id
+#             WHERE u.telegram_id = ?
+#               AND t.is_done = 1
+#               AND strftime('%Y', t.done_date) = ?
+#               AND strftime('%m', t.done_date) = ?
+#             GROUP BY day
+#             """,
+#             (telegram_id, str(year), f"{month:02d}"),
+#         )
+
+#         rows = cur.fetchall()
+
+#         # تبدیل به دیکشنری
+#         return {row[0]: row[1] for row in rows}
+
+
 def get_daily_smiles_in_month(telegram_id, year, month):
     with get_connection() as conn:
         cur = conn.cursor()
 
         cur.execute(
             """
-            SELECT DATE(t.done_date) as day, SUM(t.priority)
-            FROM tasks t
-            JOIN users u ON t.user_id = u.id
+            SELECT DATE(h.done_date) as day, SUM(h.priority) 
+            FROM tasks_history h
+            JOIN users u ON h.user_id = u.id
             WHERE u.telegram_id = ?
-              AND t.is_done = 1
-              AND strftime('%Y', t.done_date) = ?
-              AND strftime('%m', t.done_date) = ?
+              AND strftime('%Y', h.done_date) = ?
+              AND strftime('%m', h.done_date) = ?
             GROUP BY day
             """,
             (telegram_id, str(year), f"{month:02d}"),
@@ -408,6 +440,38 @@ def get_daily_smiles_in_month(telegram_id, year, month):
 
         # تبدیل به دیکشنری
         return {row[0]: row[1] for row in rows}
+
+
+# def get_done_tasks_grouped_today(telegram_id):
+#     conn = get_connection()
+#     cur = conn.cursor()
+
+#     today_str = date.today().isoformat()
+
+#     cur.execute(
+#         """
+#         SELECT t.title, t.category, t.priority
+#         FROM tasks t
+#         JOIN users u ON t.user_id = u.id
+#         WHERE u.telegram_id = ?
+#           AND t.is_done = 1
+#           AND DATE(t.done_date) = ?
+#         ORDER BY t.category
+#         """,
+#         (telegram_id, today_str),
+#     )
+
+#     rows = cur.fetchall()
+#     conn.close()
+
+#     grouped = {}
+#     total_smiles = 0
+
+#     for title, category, priority in rows:
+#         grouped.setdefault(category or "بدون دسته", []).append(title)
+#         total_smiles += priority or 0
+
+#     return grouped, total_smiles
 
 
 def get_done_tasks_grouped_today(telegram_id):

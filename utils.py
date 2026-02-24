@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
-import os 
+import os
 
 load_dotenv()
 ADMIN = int(os.getenv("ADMIN"))
@@ -52,6 +52,7 @@ def main_menu_keyboard(telegram_id: int):
     if telegram_id == ADMIN:
         keyboard_buttons.append([KeyboardButton(text="ارسال گزارش روز")])
         keyboard_buttons.append([KeyboardButton(text="آمار کلی کاربران")])
+        keyboard_buttons.append([KeyboardButton(text="چک کردن")])
 
     return ReplyKeyboardMarkup(
         keyboard=keyboard_buttons,
